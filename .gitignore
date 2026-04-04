@@ -1,0 +1,30 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.egg-info/
+.pytest_cache/
+dist/
+build/
+
+# Virtual environments
+venv/
+.venv/
+env/
+.env
+.env.*
+securec_venv/
+safeo_backend/.venv/
+
+# OS / IDE
+.DS_Store
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Secrets — never commit
+*.key
+*.pem
+*.secret

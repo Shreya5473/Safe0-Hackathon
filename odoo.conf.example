@@ -1,0 +1,11 @@
+[options]
+db_host = localhost
+db_port = 5432
+db_user = shreeyagupta
+; Use empty string for no password (the word False is not valid here)
+db_password =
+addons_path = addons,odoo/addons,/Users/shreeyagupta/founder_Ai/odoo/addons/workshop
+; Single-database mode: avoids requests with no DB where env.user stays empty
+db_name = securec_db
+list_db = False
+http_interface = 127.0.0.1
