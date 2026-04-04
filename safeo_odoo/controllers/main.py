@@ -309,8 +309,8 @@ class SafeOController(http.Controller):
         request.session['securec_active_policy_id'] = pid
 
         # Admin users also update global default for all users.
-        scope = 'session'
-        if request.env.user.has_group('securec_odoo.group_securec_admin'):
+        # Require only base.group_user instead of securec_odoo admin
+        if request.env.user.has_group('base.group_user'):
             request.env['ir.config_parameter'].sudo().set_param('securec.active_policy_id', str(pid))
             scope = 'global'
         return {'ok': True, 'active_policy_id': pid, 'scope': scope}

@@ -72,7 +72,7 @@
         parent="securec_menu_root"
         action="action_securec_policy_list"
         sequence="25"
-        groups="securec_odoo.group_securec_admin"/>
+        groups="base.group_user"/>
 
     <!-- Settings: API URL, thresholds, feature toggles -->
     <menuitem
@@ -81,5 +81,5 @@
         parent="securec_menu_root"
         action="base_setup.action_general_configuration"
         sequence="30"
-        groups="securec_odoo.group_securec_admin"/>
+        groups="base.group_user"/>
 </odoo>

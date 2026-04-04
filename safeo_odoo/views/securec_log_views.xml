@@ -27,7 +27,8 @@
                        decoration-warning="decision == 'warn'"
                        decoration-info="decision == 'sanitize'"
                        decoration-success="decision == 'allow'"/>
-                <field name="jira_ticket_id" optional="show"/>
+                <field name="jira_ticket_id" optional="show" invisible="not jira_ticket_id"/>
+                <button string="Sync to SCRUM-1" type="object" name="action_sync_to_jira" class="btn-primary" invisible="jira_ticket_id" groups="base.group_user"/>
             </list>
         </field>
     </record>

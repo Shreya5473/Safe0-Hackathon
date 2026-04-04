@@ -198,7 +198,7 @@ class CrmLead(models.Model):
                     'risk_score_raw': risk_score,
                     'decision': decision.upper() if decision.upper() in ('ALLOW', 'WARN', 'BLOCK') else 'ALLOW',
                     'reason': explanation,
-                    'erp_impact': 'transaction_blocked' if decision == 'block' else 'flagged_for_review' if decision == 'warn' else 'transaction_approved',
+                    'erp_impact': vals.get('name') or (self.name if hasattr(self, 'name') and self.name else 'Unnamed Lead'),
                     'detected_patterns': patterns,
                     'network_signal': 'safe',
                     'request_id': data.get('request_id', ''),

@@ -71,7 +71,20 @@ class SafeOLog(models.Model):
             if record.risk_score >= 0.70:
                 record._try_create_jira_ticket()
                 record._send_odoo_notification()
+        # Immediate Commit: force sync to DB
+        self.env.cr.commit()
         return records
+
+    def write(self, vals):
+        res = super().write(vals)
+        self.env.cr.commit()
+        return res
+
+    def unlink(self):
+        # Delete Consistency: ensure hard deletes sync immediately to postgres
+        res = super().unlink()
+        self.env.cr.commit()
+        return res
 
     def _try_create_jira_ticket(self):
         """Auto-create a Jira issue for high-risk threats."""
@@ -145,3 +158,37 @@ class SafeOLog(models.Model):
             )
         except Exception:
             pass
+
+    def action_sync_to_jira(self):
+        self.ensure_one()
+        url = "https://dubai-team-k95wwzeh.atlassian.net/rest/api/2/issue/SCRUM-1/comment"
+        user = "f20240292@dubai.bits-pilani.ac.in"
+        token = "DUMMY_TOKEN_PLEASE_IGNORE"
+        
+        comment_body = f"SafeO Sync - Log ID: {self.id}\nInput Preview: {self.input_preview}\nRisk Score: {self.risk_score}"
+        payload = {
+            "body": comment_body
+        }
+        
+        try:
+            resp = requests.post(
+                url,
+                json=payload,
+                auth=(user, token),
+                headers={"Content-Type": "application/json"}
+            )
+            resp.raise_for_status()
+            
+            self.sudo().write({'jira_ticket_id': 'SCRUM-1'})
+            self.env.cr.commit()
+            
+            return {
+                'effect': {
+                    'fadeout': 'fast',
+                    'message': 'Synced to SCRUM-1!',
+                    'type': 'rainbow_man',
+                }
+            }
+        except Exception as e:
+            from odoo.exceptions import UserError
+            raise UserError(f"Failed to sync to Jira: {e}")
