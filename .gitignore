@@ -28,3 +28,6 @@ safeo_backend/.venv/
 *.key
 *.pem
 *.secret
+odoo/
+odoo.conf
+install.log

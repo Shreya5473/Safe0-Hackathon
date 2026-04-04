@@ -68,7 +68,7 @@
                          style="border-radius:8px; padding:12px 16px; background:#ebf8ff; border:1px solid #bee3f8;">
                         <div style="display:flex; gap:16px; align-items:center; flex-wrap:wrap;">
                             <span>
-                                <b>🌐 Language:</b>&#160;
+                                <b>Language:</b> 
                                 <field name="detected_language" widget="badge"
                                        decoration-info="detected_language == 'en'"
                                        decoration-warning="detected_language == 'ar'"
@@ -76,11 +76,11 @@
                                        nolabel="1"/>
                             </span>
                             <span invisible="not policy_region">
-                                <b>🗺️ Region:</b>&#160;
+                                <b>Region:</b> 
                                 <field name="policy_region" nolabel="1"/>
                             </span>
                             <span invisible="not policy_decision_reason">
-                                <b>⚖️ Policy:</b>&#160;
+                                <b>Policy:</b> 
                                 <field name="policy_decision_reason" nolabel="1"/>
                             </span>
                         </div>
@@ -146,9 +146,9 @@
                 <filter string="Warned" name="warned" domain="[('decision','=','warn')]"/>
                 <separator/>
                 <!-- Language filters -->
-                <filter string="🇬🇧 English" name="lang_en" domain="[('detected_language','=','en')]"/>
-                <filter string="🇦🇪 Arabic" name="lang_ar" domain="[('detected_language','=','ar')]"/>
-                <filter string="🔀 Mixed / Arabizi" name="lang_mixed" domain="[('detected_language','=','mixed')]"/>
+                <filter string="English" name="lang_en" domain="[('detected_language','=','en')]"/>
+                <filter string="Arabic" name="lang_ar" domain="[('detected_language','=','ar')]"/>
+                <filter string="Mixed / Arabizi" name="lang_mixed" domain="[('detected_language','=','mixed')]"/>
                 <separator/>
                 <!-- Region filters -->
                 <filter string="UAE Region" name="region_uae" domain="[('policy_region','=','uae')]"/>
