@@ -1,4 +1,4 @@
-from urllib.parse import unquote
+from urllib.parse import unquote, unquote_plus
 
 from typing import Tuple, List
 from .entropy import (
@@ -11,10 +11,13 @@ from .entropy import (
 from .keyword_detector import detect_threats
 
 
-def _iterative_decode(text: str, rounds: int = 2) -> str:
+def _iterative_decode(text: str, rounds: int = 3) -> str:
+    """URL-decode iteratively, handling both %XX and + (form encoding)."""
     decoded = text
     for _ in range(rounds):
-        candidate = unquote(decoded)
+        candidate = unquote_plus(decoded)
+        if candidate == decoded:
+            candidate = unquote(decoded)
         if candidate == decoded:
             break
         decoded = candidate

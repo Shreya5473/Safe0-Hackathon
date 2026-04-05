@@ -57,6 +57,8 @@ class SafeODashboard extends Component {
             viewMode: "dashboard",
             activityFeed: [],
             activeModule: "Finance",
+            moduleData: null,      // per-module FastAPI data
+            moduleLoading: false,
         });
 
         const ctx = this.props?.action?.context || {};
@@ -72,6 +74,8 @@ class SafeODashboard extends Component {
                     el.scrollIntoView({ behavior: "smooth", block: "start" });
                 }
             }
+            // Load initial module data for default activeModule
+            this.loadModuleData(this.state.activeModule);
         });
     }
 
@@ -299,9 +303,98 @@ class SafeODashboard extends Component {
         this.state.viewMode = mode;
     }
 
-    setModuleFromEvent(ev) {
+    async setModuleFromEvent(ev) {
         const moduleName = ev?.currentTarget?.dataset?.module || "Finance";
         this.state.activeModule = moduleName;
+        await this.loadModuleData(moduleName);
+    }
+
+    async loadModuleData(module) {
+        this.state.moduleLoading = true;
+        try {
+            const result = await rpc("/safeo/erp_module_summary", { module });
+            this.state.moduleData = result || null;
+        } catch (e) {
+            this.state.moduleData = null;
+        } finally {
+            this.state.moduleLoading = false;
+        }
+    }
+
+    /* ── Module-filtered helpers ────────────────────── */
+
+    moduleFilteredDecisions() {
+        const all = this.recentSecurityDecisions();
+        const mod = (this.state.activeModule || "").toLowerCase();
+        if (!mod) return all;
+        return all.filter((r) => {
+            const m = (r.erp_module || r.module || "").toLowerCase();
+            if (mod === "finance") return m === "finance" || m === "payment" || String(r.action || "").includes("finance");
+            if (mod === "hr") return m === "hr" || m === "workforce" || String(r.action || "").includes("employee");
+            if (mod === "procurement") return m === "procurement" || String(r.action || "").includes("procurement");
+            if (mod === "crm") return m === "crm" || m === "email" || m === "website";
+            return m === mod;
+        });
+    }
+
+    moduleStats() {
+        const filtered = this.moduleFilteredDecisions();
+        const total = filtered.length;
+        const blocked = filtered.filter((r) => (r.decision || "").toUpperCase() === "BLOCK").length;
+        const warned = filtered.filter((r) => (r.decision || "").toUpperCase() === "WARN").length;
+        const avgRisk = total
+            ? Math.round(filtered.reduce((s, r) => s + this.riskPercent(r.risk_score), 0) / total)
+            : 0;
+        return { total, blocked, warned, allowed: total - blocked - warned, avgRisk };
+    }
+
+    moduleTransactions() {
+        const d = this.state.moduleData;
+        if (!d) return this.moduleFilteredDecisions().slice(0, 8);
+        const mod = (this.state.activeModule || "").toLowerCase();
+        let rows = [];
+        if (mod === "finance") rows = d.financial_actions || [];
+        else if (mod === "crm") rows = d.crm_leads || [];
+        else if (mod === "hr") rows = d.employee_risk_profiles || [];
+        else if (mod === "procurement") rows = d.transaction_risk_monitor || [];
+        // Normalise shape so template can use common keys
+        return rows.map((r) => ({
+            action: r.action_type || r.erp_action || r.last_action || r.name || r.action || "—",
+            user_id: r.approver_id || r.employee_id || r.user_id || "—",
+            risk_score: (r.risk_score || 0) > 1 ? r.risk_score / 100 : r.risk_score || 0,
+            decision: (r.decision || r.status || "allow").toUpperCase().replace("APPROVED", "ALLOW").replace("FLAGGED", "WARN").replace("BLOCKED", "BLOCK").replace("_FOR_REVIEW", "").replace("_REVIEW", ""),
+            erp_module: this.state.activeModule,
+            request_id: r.action_id || r.employee_id || r.lead_id || r.transaction_id || String(Math.random()),
+            patterns: [],
+        }));
+    }
+
+    moduleSuspicious() {
+        const mod = (this.state.activeModule || "").toLowerCase();
+        const d = this.state.moduleData;
+        if (d && d.suspicious_activities) {
+            return d.suspicious_activities.filter((r) => {
+                const m = (r.module || r.erp_module || "").toLowerCase();
+                return !mod || m === mod;
+            });
+        }
+        return this.moduleFilteredDecisions().filter(
+            (r) => ["BLOCK", "WARN"].includes((r.decision || "").toUpperCase())
+        );
+    }
+
+    moduleDescription() {
+        const desc = {
+            Finance: "Monitors payment approvals, invoices, and financial transactions for fraud signals.",
+            CRM: "Scans lead form inputs, contact data, and messages for injection attacks and social engineering.",
+            HR: "Tracks employee activity patterns and flags anomalous data access or after-hours behaviour.",
+            Procurement: "Reviews purchase orders and vendor payments for shell companies and duplicate invoices.",
+        };
+        return desc[this.state.activeModule] || "";
+    }
+
+    moduleIcon() {
+        return { Finance: "💰", CRM: "🤝", HR: "👥", Procurement: "📦" }[this.state.activeModule] || "🔒";
     }
 
     switchToDashboard() {

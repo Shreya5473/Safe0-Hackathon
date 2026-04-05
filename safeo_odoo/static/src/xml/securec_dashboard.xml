@@ -39,11 +39,30 @@
         <div class="safeo-shell">
             <aside class="safeo-sidebar">
                 <h4>ERP Modules</h4>
-                <button class="safeo-sidebar-item" data-module="CRM" t-on-click="setModuleFromEvent">CRM</button>
-                <button class="safeo-sidebar-item" data-module="Finance" t-on-click="setModuleFromEvent">Finance</button>
-                <button class="safeo-sidebar-item" data-module="HR" t-on-click="setModuleFromEvent">HR</button>
-                <button class="safeo-sidebar-item" data-module="Procurement" t-on-click="setModuleFromEvent">Procurement</button>
-                <div class="safeo-sidebar-note">Active: <t t-esc="state.activeModule"/></div>
+                <button t-att-class="'safeo-sidebar-item' + (state.activeModule === 'CRM' ? ' active' : '')" data-module="CRM" t-on-click="setModuleFromEvent">🤝 CRM</button>
+                <button t-att-class="'safeo-sidebar-item' + (state.activeModule === 'Finance' ? ' active' : '')" data-module="Finance" t-on-click="setModuleFromEvent">💰 Finance</button>
+                <button t-att-class="'safeo-sidebar-item' + (state.activeModule === 'HR' ? ' active' : '')" data-module="HR" t-on-click="setModuleFromEvent">👥 HR</button>
+                <button t-att-class="'safeo-sidebar-item' + (state.activeModule === 'Procurement' ? ' active' : '')" data-module="Procurement" t-on-click="setModuleFromEvent">📦 Procurement</button>
+                <div class="safeo-sidebar-divider"/>
+                <div class="safeo-sidebar-module-stats" t-if="!state.moduleLoading">
+                    <div class="safeo-sidebar-stat">
+                        <span class="safeo-sidebar-stat-val"><t t-esc="moduleStats().total"/></span>
+                        <span class="safeo-sidebar-stat-lbl">Actions</span>
+                    </div>
+                    <div class="safeo-sidebar-stat">
+                        <span class="safeo-sidebar-stat-val red"><t t-esc="moduleStats().blocked"/></span>
+                        <span class="safeo-sidebar-stat-lbl">Blocked</span>
+                    </div>
+                    <div class="safeo-sidebar-stat">
+                        <span class="safeo-sidebar-stat-val yellow"><t t-esc="moduleStats().warned"/></span>
+                        <span class="safeo-sidebar-stat-lbl">Flagged</span>
+                    </div>
+                    <div class="safeo-sidebar-stat">
+                        <span class="safeo-sidebar-stat-val"><t t-esc="moduleStats().avgRisk"/>%</span>
+                        <span class="safeo-sidebar-stat-lbl">Avg Risk</span>
+                    </div>
+                </div>
+                <div t-if="state.moduleLoading" class="safeo-sidebar-note">Loading...</div>
             </aside>
             <div class="safeo-main">
 
@@ -53,6 +72,30 @@
         </div>
 
         <t t-if="state.viewMode !== 'attack_lab'">
+
+        <!-- Module context banner — updates on every sidebar click -->
+        <div class="safeo-module-banner">
+            <span class="safeo-module-icon"><t t-esc="moduleIcon()"/></span>
+            <div class="safeo-module-banner-text">
+                <strong><t t-esc="state.activeModule"/> Module</strong>
+                <span><t t-esc="moduleDescription()"/></span>
+            </div>
+            <div class="safeo-module-banner-stats">
+                <span t-att-class="'safeo-module-pill ' + (moduleStats().blocked > 0 ? 'pill-danger' : 'pill-ok')">
+                    <t t-esc="moduleStats().blocked"/> Blocked
+                </span>
+                <span t-att-class="'safeo-module-pill ' + (moduleStats().warned > 0 ? 'pill-warn' : 'pill-ok')">
+                    <t t-esc="moduleStats().warned"/> Flagged
+                </span>
+                <span class="safeo-module-pill pill-ok">
+                    <t t-esc="moduleStats().allowed"/> Allowed
+                </span>
+                <span class="safeo-module-pill" t-att-class="'safeo-module-pill ' + (moduleStats().avgRisk >= 70 ? 'pill-danger' : moduleStats().avgRisk >= 30 ? 'pill-warn' : 'pill-ok')">
+                    Avg Risk <t t-esc="moduleStats().avgRisk"/>%
+                </span>
+            </div>
+        </div>
+
         <div class="safeo-stat-grid">
             <div class="safeo-stat-card command-card total">
                 <div class="stat-info">
@@ -142,13 +185,14 @@
 
         <div class="safeo-mid-grid">
             <div class="safeo-card">
-                <h3>Risk Pipeline</h3>
-                <table class="safeo-table safeo-table-compact" t-if="transactionRiskMonitor().length">
+                <h3><t t-esc="state.activeModule"/> — Risk Pipeline</h3>
+                <t t-set="modTxns" t-value="moduleTransactions()"/>
+                <table class="safeo-table safeo-table-compact" t-if="modTxns.length">
                     <thead><tr><th>Action</th><th>User</th><th>Risk</th><th>Decision</th></tr></thead>
                     <tbody>
-                        <t t-foreach="transactionRiskMonitor()" t-as="r" t-key="r.request_id">
+                        <t t-foreach="modTxns" t-as="r" t-key="r.request_id">
                             <tr>
-                                <td><t t-esc="r.action || 'transaction'"/></td>
+                                <td><t t-esc="r.action || 'activity'"/></td>
                                 <td><t t-esc="r.user_id || '-'"/></td>
                                 <td>
                                     <div class="risk-score-cell">
@@ -163,14 +207,15 @@
                         </t>
                     </tbody>
                 </table>
-                <div t-else="" class="safeo-empty">No transaction risk records yet.</div>
+                <div t-else="" class="safeo-empty">No <t t-esc="state.activeModule"/> actions yet. Try running an ERP scenario via the backend or CRM.</div>
             </div>
             <div class="safeo-card">
-                <h3>Behavior Signals</h3>
-                <table class="safeo-table safeo-table-compact" t-if="employeeRiskProfiles().length">
-                    <thead><tr><th>Employee</th><th>Actions</th><th>Max Risk</th><th>Flags</th></tr></thead>
+                <h3><t t-esc="state.activeModule"/> — Behavior Signals</h3>
+                <t t-set="modProfiles" t-value="employeeRiskProfiles()"/>
+                <table class="safeo-table safeo-table-compact" t-if="modProfiles.length">
+                    <thead><tr><th>User</th><th>Actions</th><th>Max Risk</th><th>Flags</th></tr></thead>
                     <tbody>
-                        <t t-foreach="employeeRiskProfiles()" t-as="p" t-key="p.user">
+                        <t t-foreach="modProfiles" t-as="p" t-key="p.user">
                             <tr>
                                 <td><t t-esc="p.user"/></td>
                                 <td><t t-esc="p.actions"/></td>
@@ -182,21 +227,22 @@
                                         </div>
                                     </div>
                                 </td>
-                                <td><t t-esc="'WARN ' + p.warned + ' / BLOCK ' + p.blocked"/></td>
+                                <td><t t-esc="'W:' + p.warned + ' B:' + p.blocked"/></td>
                             </tr>
                         </t>
                     </tbody>
                 </table>
-                <div t-else="" class="safeo-empty">No employee actions yet.</div>
+                <div t-else="" class="safeo-empty">No user activity recorded for <t t-esc="state.activeModule"/> yet.</div>
             </div>
             <div class="safeo-card">
-                <h3>Live Risk Events</h3>
-                <table class="safeo-table safeo-table-compact" t-if="suspiciousActivities().length">
+                <h3><t t-esc="state.activeModule"/> — Suspicious Events</h3>
+                <t t-set="modSusp" t-value="moduleSuspicious()"/>
+                <table class="safeo-table safeo-table-compact" t-if="modSusp.length">
                     <thead><tr><th>Action</th><th>User</th><th>Risk</th><th>Decision</th></tr></thead>
                     <tbody>
-                        <t t-foreach="suspiciousActivities()" t-as="s" t-key="s.request_id">
+                        <t t-foreach="modSusp" t-as="s" t-key="s.request_id || s_index">
                             <tr>
-                                <td><t t-esc="s.action || '-'"/></td>
+                                <td><t t-esc="s.action || s.erp_action || '-'"/></td>
                                 <td><t t-esc="s.user_id || '-'"/></td>
                                 <td>
                                     <div class="risk-score-cell">
@@ -211,16 +257,17 @@
                         </t>
                     </tbody>
                 </table>
-                <div t-else="" class="safeo-empty">No suspicious activities yet.</div>
+                <div t-else="" class="safeo-empty">No flagged events for <t t-esc="state.activeModule"/>.</div>
             </div>
         </div>
 
         <div class="safeo-logs-card">
-            <h3>Decision Log</h3>
-            <table class="safeo-table" t-if="recentSecurityDecisions().length">
+            <h3><t t-esc="state.activeModule"/> — Decision Log</h3>
+            <t t-set="modDecisions" t-value="moduleFilteredDecisions()"/>
+            <table class="safeo-table" t-if="modDecisions.length">
                 <thead><tr><th>Action</th><th>User</th><th>Risk</th><th>Decision</th><th>Module</th></tr></thead>
                 <tbody>
-                    <t t-foreach="recentSecurityDecisions()" t-as="d" t-key="d.request_id + d.decision">
+                    <t t-foreach="modDecisions" t-as="d" t-key="d.request_id + d.decision">
                         <tr>
                             <td><t t-esc="d.action || '-'"/></td>
                             <td><t t-esc="d.user_id || '-'"/></td>
@@ -238,7 +285,7 @@
                     </t>
                 </tbody>
             </table>
-            <div t-else="" class="safeo-empty">No recent decisions yet.</div>
+            <div t-else="" class="safeo-empty">No decisions recorded for <t t-esc="state.activeModule"/> yet.</div>
         </div>
 
         <div class="safeo-card safeo-command-card">

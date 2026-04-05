@@ -92,7 +92,12 @@ class SafeOERPDecision(models.Model):
     # ── Business Impact ────────────────────────────────────────────────────
 
     # Maps the technical decision to a business outcome employees understand
-    business_impact = fields.Char(string='Business Impact', default='Transaction Approved')
+    business_impact = fields.Selection([
+        ('transaction_approved', 'Transaction Approved'),
+        ('flagged_for_review', 'Flagged for Review'),
+        ('transaction_blocked', 'Transaction Blocked'),
+        ('action_blocked', 'Action Blocked'),
+    ], string='Business Impact', default='transaction_approved')
 
     # Optional: link back to the CRM lead that triggered this decision
     crm_lead_id = fields.Many2one(
@@ -192,21 +197,3 @@ class SafeOERPDecision(models.Model):
             'crm_lead_id': vals.get('crm_lead_id', False),
         }
         return self.sudo().create(record_vals)
-
-    @api.model_create_multi
-    def create(self, vals_list):
-        records = super().create(vals_list)
-        # Immediate Commit: Force database sync
-        self.env.cr.commit()
-        return records
-
-    def write(self, vals):
-        res = super().write(vals)
-        self.env.cr.commit()
-        return res
-
-    def unlink(self):
-        # Delete Consistency: ensure hard delete syncs immediately
-        res = super().unlink()
-        self.env.cr.commit()
-        return res

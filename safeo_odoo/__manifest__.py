@@ -69,6 +69,7 @@ Architecture
 
     'data': [
         # Security must be loaded first so access rules are ready for data
+        'security/securec_security.xml',
         'security/ir.model.access.csv',
         'data/securec_data.xml',
 

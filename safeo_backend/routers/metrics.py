@@ -26,6 +26,7 @@ def _normalized_decision(value: str) -> str:
     return d or "allow"
 
 
+@router.get("", response_model=MetricsResponse)
 @router.get("/", response_model=MetricsResponse)
 async def get_metrics():
     logs = get_request_log()

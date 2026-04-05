@@ -1,7 +1,7 @@
 import logging
 import datetime as dt
 import requests
-from odoo import http, fields
+from odoo import http, fields, api
 from odoo.http import request
 
 _logger = logging.getLogger(__name__)
@@ -309,8 +309,8 @@ class SafeOController(http.Controller):
         request.session['securec_active_policy_id'] = pid
 
         # Admin users also update global default for all users.
-        # Require only base.group_user instead of securec_odoo admin
-        if request.env.user.has_group('base.group_user'):
+        scope = 'session'
+        if request.env.user.has_group('securec_odoo.group_securec_admin'):
             request.env['ir.config_parameter'].sudo().set_param('securec.active_policy_id', str(pid))
             scope = 'global'
         return {'ok': True, 'active_policy_id': pid, 'scope': scope}
@@ -337,6 +337,57 @@ class SafeOController(http.Controller):
                 'AttackLab': 'Live Decision Lab simulated payloads (this session)',
                 'GlobalMonitor': 'Monitors suspicious mutating requests from installed Odoo apps',
             },
+        }
+
+    @http.route(['/safeo/erp_module_summary', '/securec/erp_module_summary'], type='jsonrpc', auth='user', methods=['POST'])
+    def erp_module_summary(self, module='Finance', **kwargs):
+        """Per-module live data: proxied from FastAPI /erp/dashboard/summary."""
+        try:
+            resp = requests.get(f"{_api_url()}/erp/dashboard/summary", timeout=4)
+            if resp.status_code == 200:
+                data = resp.json()
+                mod = (module or 'Finance').strip()
+                # Pull the relevant slice
+                result = {
+                    'module': mod,
+                    'transaction_risk_monitor': data.get('transaction_risk_monitor', []),
+                    'employee_risk_profiles': data.get('employee_risk_profiles', []),
+                    'suspicious_activities': data.get('suspicious_activities', []),
+                    'recent_security_decisions': data.get('recent_security_decisions', []),
+                    'crm_leads': data.get('crm_leads', []),
+                    'financial_actions': data.get('financial_actions', []),
+                }
+                return result
+        except Exception as e:
+            _logger.warning("SafeO: erp_module_summary backend unreachable — %s", e)
+
+        # Fallback: aggregate from Odoo DB
+        mod = (module or 'Finance').strip()
+        ERP = request.env['safeo.erp.decision'].sudo()
+        recent = ERP.search([('erp_module', '=', mod)], limit=10, order='timestamp desc')
+        decisions = [
+            {
+                'request_id': r.request_id or str(r.id),
+                'erp_action': r.erp_action,
+                'action': r.erp_action,
+                'user_id': r.employee_id or '',
+                'risk_score': r.risk_score,
+                'decision': r.decision,
+                'erp_module': r.erp_module,
+                'timestamp': fields.Datetime.to_string(r.timestamp) if r.timestamp else '',
+            }
+            for r in recent
+        ]
+        suspicious = [d for d in decisions if d['decision'] in ('WARN', 'BLOCK')]
+        return {
+            'module': mod,
+            'transaction_risk_monitor': decisions,
+            'employee_risk_profiles': [],
+            'suspicious_activities': suspicious,
+            'recent_security_decisions': decisions,
+            'crm_leads': [],
+            'financial_actions': decisions if mod == 'Finance' else [],
+            '_source': 'odoo_db_fallback',
         }
 
     @http.route(['/safeo/simulate', '/securec/simulate'], type='jsonrpc', auth='user', methods=['POST'])
