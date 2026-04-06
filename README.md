@@ -251,7 +251,7 @@ After login, click **SafeO ERP** in the top navigation bar.
 
 ---
 
-## Hackathon Theme Alignment
+## SafeO (Safe Odoo)
 
 | Theme | SafeO coverage |
 |---|---|
