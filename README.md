@@ -14,9 +14,9 @@
 5. [Setup — Step by Step](#setup--step-by-step)
 6. [Running Locally](#running-locally)
 7. [Demo Flow](#demo-flow)
-8. [Hackathon Theme Alignment](#hackathon-theme-alignment)
+8. SafeO Brief
 9. [Jira Integration](#jira-integration)
-10. [Screenshots](#screenshots)
+
 
 ---
 
@@ -287,4 +287,5 @@ The dashboard "From Risk → Action" card shows the ticket link live.
 
 ---
 
-*Built for the Pixel Coders Hackathon — SafeO Team*
+*Built by
+team name- Pixel Coders
