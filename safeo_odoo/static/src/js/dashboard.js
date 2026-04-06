@@ -40,14 +40,10 @@ class SafeODashboard extends Component {
             metrics: { ...EMPTY_METRICS },
             logs: [],
             auditLogs: [],
-            context: { monitored_apps: [], scope_note: "" },
-            policies: [],
-            selectedPolicyId: null,
             simulation: null,
             simError: "",
             simLoading: false,
             apiOffline: false,
-            activePolicy: null,
             labPayload: "",
             labRunning: false,
             labResult: null,
@@ -57,7 +53,7 @@ class SafeODashboard extends Component {
             viewMode: "dashboard",
             activityFeed: [],
             activeModule: "Finance",
-            moduleData: null,      // per-module FastAPI data
+            moduleData: null,
             moduleLoading: false,
         });
 
@@ -80,14 +76,10 @@ class SafeODashboard extends Component {
     }
 
     async loadData() {
-        // Never fail the whole screen if one endpoint errors (Odoo would look like a blank redirect)
-        const [mRes, lRes, pRes, cRes, aRes, polRes, fRes] = await Promise.allSettled([
+        const [mRes, lRes, aRes, fRes] = await Promise.allSettled([
             rpc("/safeo/metrics", {}),
             rpc("/safeo/logs", {}),
-            rpc("/safeo/active_policy", {}),
-            rpc("/safeo/context", {}),
             rpc("/safeo/audit_logs", {}),
-            rpc("/safeo/policies", {}),
             rpc("/safeo/activity_feed", { limit: 40 }),
         ]);
         if (mRes.status === "fulfilled" && mRes.value) {
@@ -103,27 +95,10 @@ class SafeODashboard extends Component {
         } else {
             this.state.logs = [];
         }
-        if (pRes.status === "fulfilled" && pRes.value) {
-            this.state.activePolicy = pRes.value.policy || null;
-            this.state.selectedPolicyId = this.state.activePolicy ? this.state.activePolicy.id : null;
-        } else {
-            this.state.activePolicy = null;
-            this.state.selectedPolicyId = null;
-        }
-        if (cRes.status === "fulfilled" && cRes.value) {
-            this.state.context = cRes.value;
-        } else {
-            this.state.context = { monitored_apps: ["CRM", "Authentication", "Website"], scope_note: "" };
-        }
         if (aRes.status === "fulfilled" && aRes.value) {
             this.state.auditLogs = aRes.value.audit_logs || [];
         } else {
             this.state.auditLogs = [];
-        }
-        if (polRes.status === "fulfilled" && polRes.value) {
-            this.state.policies = polRes.value.policies || [];
-        } else {
-            this.state.policies = [];
         }
         if (fRes.status === "fulfilled" && fRes.value) {
             this.state.activityFeed = fRes.value.items || [];
@@ -220,16 +195,6 @@ class SafeODashboard extends Component {
         return row?.detected ? "sim-detected-yes" : "sim-detected-no";
     }
 
-    langPct(lang) {
-        const dist = this.state.metrics.lang_distribution || {};
-        const total = (dist.en || 0) + (dist.ar || 0) + (dist.mixed || 0);
-        if (!total) return 0;
-        return Math.round(((dist[lang] || 0) / total) * 100);
-    }
-
-    langCount(lang) {
-        return (this.state.metrics.lang_distribution || {})[lang] || 0;
-    }
 
     riskActivityPct() {
         const m = this.state.metrics || {};
@@ -278,25 +243,6 @@ class SafeODashboard extends Component {
         if (score >= 0.70) return "#f56565";
         if (score >= 0.30) return "#ed8936";
         return "#48bb78";
-    }
-
-    langBadgeClass(lang) {
-        return { en: "lang-en", ar: "lang-ar", mixed: "lang-mixed" }[lang] || "lang-en";
-    }
-
-    langLabel(lang) {
-        return { en: "EN", ar: "AR", mixed: "MIX" }[lang] || "EN";
-    }
-
-    activePolicyRegion() {
-        const p = this.state.activePolicy;
-        if (!p) return null;
-        const labels = { uae: "UAE", eu: "EU", us: "US", global: "Global" };
-        return labels[p.region] || p.region;
-    }
-
-    monitoredApps() {
-        return this.state.context?.monitored_apps || [];
     }
 
     switchView(mode) {
@@ -405,32 +351,6 @@ class SafeODashboard extends Component {
         this.switchView("attack_lab");
     }
 
-    policyOptions() {
-        const labels = { uae: "UAE", eu: "EU", us: "US", global: "Global" };
-        return (this.state.policies || []).map((p) => ({
-            id: p.id,
-            label: `${labels[p.region] || p.region} — ${p.name}`,
-        }));
-    }
-
-    async onPolicyChange(ev) {
-        const val = parseInt(ev.target.value || "0", 10);
-        const policyId = Number.isFinite(val) && val > 0 ? val : null;
-        this.state.selectedPolicyId = policyId;
-        if (!policyId) return;
-        try {
-            const res = await rpc("/safeo/active_policy/set", { policy_id: policyId });
-            if (res?.error) {
-                this.notification.add(res.error, { type: "warning", title: "ERP Policy" });
-                return;
-            }
-            const scope = res?.scope === "global" ? "globally" : "for your session";
-            this.notification.add(`Region policy applied ${scope}`, { type: "success", title: "SafeO ERP" });
-            await this.loadData();
-        } catch (e) {
-            this.notification.add("Failed to apply policy", { type: "danger", title: "ERP Policy" });
-        }
-    }
 
     setLabPreset(payload) {
         this.state.labPayload = payload;

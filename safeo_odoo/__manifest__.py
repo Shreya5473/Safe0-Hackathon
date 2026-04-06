@@ -9,7 +9,7 @@
     # and employee activity before they are committed to the database.
     # ─────────────────────────────────────────────────────────────────────────
     'name': 'SafeO — ERP Risk Decision Engine',
-    'version': '19.0.4.0.0',
+    'version': '19.0.5.0.0',
 
     # Maps to the hackathon's "Business, Finance and Workforce ERP" track.
     # Judges use this field to route submissions to the correct reviewers.

@@ -14,20 +14,6 @@
                 <span class="live-dot"/>
                 <span>Live Monitoring</span>
             </div>
-            <t t-if="state.activePolicy">
-                <span class="safeo-region-pill">Policy: <t t-esc="activePolicyRegion()"/></span>
-            </t>
-            <div class="safeo-policy-wrap">
-                <select class="safeo-policy-select" t-on-change="onPolicyChange">
-                    <option value="">Select Region Policy</option>
-                    <t t-foreach="policyOptions()" t-as="p" t-key="p.id">
-                        <option t-att-value="p.id" t-att-selected="state.selectedPolicyId === p.id ? 'selected' : undefined">
-                            <t t-esc="p.label"/>
-                        </option>
-                    </t>
-                </select>
-                <span class="safeo-policy-hint">auto-saved on change</span>
-            </div>
             <button class="safeo-refresh-btn" t-on-click="loadData">Refresh</button>
         </div>
     </div>
@@ -412,12 +398,6 @@
                     <span class="safeo-tag">Decision Lab</span>
                     <span class="safeo-scope-desc">Live test payloads you run below — same decision engine, results appear in recent decisions immediately</span>
                 </div>
-                <div class="safeo-scope-item">
-                    <span class="safeo-tag">Global Monitor</span>
-                    <span class="safeo-scope-desc">
-                        <t t-esc="state.context.global_monitor_enabled ? 'Enabled: scans suspicious POST/JSON payloads from installed Odoo apps and logs risky traffic.' : 'Disabled: cross-app monitor is OFF in SafeO settings.'"/>
-                    </span>
-                </div>
             </div>
         </div>
 
@@ -449,25 +429,6 @@
             </div>
 
             <div class="safeo-card">
-                <h3>Language Visibility</h3>
-                <div class="lang-bar-row">
-                    <span class="lang-bar-label">English</span>
-                    <div class="lang-bar-track"><div class="lang-bar-fill-en" t-att-style="'width:' + langPct('en') + '%'"/></div>
-                    <span class="lang-bar-count"><t t-esc="langCount('en')"/></span>
-                </div>
-                <div class="lang-bar-row">
-                    <span class="lang-bar-label">Arabic</span>
-                    <div class="lang-bar-track"><div class="lang-bar-fill-ar" t-att-style="'width:' + langPct('ar') + '%'"/></div>
-                    <span class="lang-bar-count"><t t-esc="langCount('ar')"/></span>
-                </div>
-                <div class="lang-bar-row">
-                    <span class="lang-bar-label">Mixed / Arabizi</span>
-                    <div class="lang-bar-track"><div class="lang-bar-fill-mixed" t-att-style="'width:' + langPct('mixed') + '%'"/></div>
-                    <span class="lang-bar-count"><t t-esc="langCount('mixed')"/></span>
-                </div>
-            </div>
-
-            <div class="safeo-card">
                 <h3>Threats by Application</h3>
                 <t t-foreach="moduleEntries()" t-as="entry" t-key="entry.name">
                     <div class="module-bar-row">
@@ -490,8 +451,6 @@
                             <th>Application</th>
                             <th>User</th>
                             <th>Input</th>
-                            <th>Language</th>
-                            <th>Region</th>
                             <th>Risk</th>
                             <th>Decision</th>
                         </tr>
@@ -503,8 +462,6 @@
                                 <td><t t-esc="log.module || 'N/A'"/></td>
                                 <td><t t-esc="log.user_id ? log.user_id[1] : 'N/A'"/></td>
                                 <td><t t-esc="log.input_preview || '-'"/></td>
-                                <td><t t-esc="langLabel(log.detected_language)"/></td>
-                                <td><t t-esc="log.policy_region || '-'"/></td>
                                 <td><t t-esc="Math.round((log.risk_score || 0) * 100) + '%'"/></td>
                                 <td><span t-att-class="'decision-badge ' + log.decision"><t t-esc="(log.decision || '').toUpperCase()"/></span></td>
                             </tr>
@@ -552,7 +509,7 @@
 
         <div class="safeo-sim-card">
             <h3>Risk Scenario Simulation</h3>
-            <p class="sim-subtitle">Runs curated payloads through the same deterministic ERP risk scorer (fast; no LLM requirement). Requires the backend URL in Settings.</p>
+            <p class="sim-subtitle">Runs curated payloads through the real-time ERP risk scorer — entropy, keyword detection, and behavioral signals.</p>
             <button class="sim-run-btn" t-att-class="state.simLoading ? 'sim-run-btn is-busy' : 'sim-run-btn'" t-on-click="runSimulation">
                 <t t-if="state.simLoading">Running simulation...</t>
                 <t t-else="">Run risk simulation</t>
